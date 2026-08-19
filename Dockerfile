@@ -1,34 +1,27 @@
-# Stage 1: Build the application
-FROM eclipse-temurin:21-jdk-jammy AS build
+# Stage 1: Build the application using Maven and JDK 21
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copy Maven wrapper and configuration
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
-
-# Grant execution rights on the Maven wrapper
-RUN chmod +x mvnw
-
-# Resolve dependencies (caches them in Docker layer)
-RUN ./mvnw dependency:go-offline -B
-
-# Copy source code and package the application (skipping test execution during build)
+# Copy pom.xml and src directly without relying on Maven wrapper
+COPY pom.xml ./
 COPY src ./src
-RUN ./mvnw package -DskipTests
 
-# Stage 2: Create the runtime container
+# Build the package skipping tests
+RUN mvn clean package -DskipTests
+
+# Stage 2: Create the runtime environment
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-# Copy the packaged jar from the build stage
+# Copy the built jar from the build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Define default environment variables
+# Expose default port
+EXPOSE 8081
+
+# Set default env values (PORT defaults to 8081; MONGODB_URI for database overrides)
 ENV PORT=8081
 ENV MONGODB_URI=mongodb://localhost:27017/job_ingestion
 
-# Expose the application port
-EXPOSE 8081
-
-# Run the application, ensuring shell expands environment variables properly
+# Run the Spring Boot application, mapping server port and mongo uri dynamically
 ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT} --spring.mongodb.uri=${MONGODB_URI}"]
