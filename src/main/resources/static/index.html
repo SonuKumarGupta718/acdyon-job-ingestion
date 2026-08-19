@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acdyon Job Ingestion Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <!-- Background glow elements for premium aesthetics -->
+    <div class="glow-bg">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="logo-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#8B5CF6"/>
+                                <stop offset="1" stop-color="#3B82F6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>Acdyon</h1>
+                    <span>Job Ingestion Hub</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="server-status" id="healthStatus">
+                    <span class="status-indicator warning"></span>
+                    <span class="status-label">Checking Server...</span>
+                </div>
+                <button class="btn btn-primary" id="btnIngest" onclick="triggerIngestion()">
+                    <span class="btn-spinner hidden" id="ingestSpinner"></span>
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                    <span>Ingest Jobs</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Controls (Search, Location, Ingest stats) -->
+        <div class="control-panel glass-card">
+            <div class="search-bar">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="inputKeyword" placeholder="Search by title, company, tags..." oninput="handleSearch()">
+            </div>
+            
+            <div class="filter-bar">
+                <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10H3M21 6H3M21 14H3M21 18H3"/>
+                </svg>
+                <input type="text" id="inputLocation" placeholder="Filter by Location (e.g. Berlin, Remote)..." oninput="handleSearch()">
+            </div>
+        </div>
+
+        <!-- Ingestion Stats Modal / Display Banner -->
+        <div id="statsBanner" class="stats-banner glass-card hidden">
+            <div class="stats-header">
+                <h3>Latest Ingestion Run</h3>
+                <button class="close-btn" onclick="hideStats()">&times;</button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-num" id="statFetched">0</span>
+                    <span class="stat-lbl">Fetched</span>
+                </div>
+                <div class="stat-card success">
+                    <span class="stat-num" id="statInserted">0</span>
+                    <span class="stat-lbl">Inserted</span>
+                </div>
+                <div class="stat-card warning">
+                    <span class="stat-num" id="statUpdated">0</span>
+                    <span class="stat-lbl">Updated</span>
+                </div>
+                <div class="stat-card info">
+                    <span class="stat-num" id="statSkipped">0</span>
+                    <span class="stat-lbl">Skipped</span>
+                </div>
+                <div class="stat-card danger">
+                    <span class="stat-num" id="statFailed">0</span>
+                    <span class="stat-lbl">Failed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jobs Content Area -->
+        <main class="main-content">
+            <!-- Loading State -->
+            <div id="loadingState" class="state-container hidden">
+                <div class="loading-spinner"></div>
+                <p>Retrieving parsed jobs from MongoDB...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="state-container error hidden">
+                <div class="error-icon">!</div>
+                <h3>Server connection failed</h3>
+                <p id="errorMessage">Unable to fetch jobs from backend API. Please make sure port 8081 is running.</p>
+                <button class="btn btn-secondary" onclick="fetchJobs()">Try Again</button>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="state-container empty hidden">
+                <h3>No jobs found</h3>
+                <p>Try refining your search keyword or trigger an ingestion run to fetch live records.</p>
+            </div>
+
+            <!-- Jobs List Container -->
+            <div id="jobsGrid" class="jobs-grid">
+                <!-- Dynamically populated job cards go here -->
+            </div>
+
+            <!-- Pagination Panel -->
+            <div id="paginationPanel" class="pagination-panel hidden">
+                <button class="pagination-btn" id="btnPrev" onclick="changePage(-1)">
+                    &larr; Previous Page
+                </button>
+                <span class="page-indicator" id="pageIndicator">Page 1 of 1</span>
+                <button class="pagination-btn" id="btnNext" onclick="changePage(1)">
+                    Next Page &rarr;
+                </button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>&copy; 2026 Acdyon Technologies. Legitimate public ingestion of Arbeitnow Jobs. Adhering to Rate Limits & Terms.</p>
+        </footer>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>
