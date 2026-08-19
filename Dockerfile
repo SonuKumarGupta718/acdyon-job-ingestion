@@ -19,9 +19,8 @@ COPY --from=build /app/target/*.jar app.jar
 # Expose default port
 EXPOSE 8081
 
-# Set default env values (PORT defaults to 8081; MONGODB_URI for database overrides)
+# Set default env values (PORT defaults to 8081; MONGODB_URI has no default fallback)
 ENV PORT=8081
-ENV MONGODB_URI=mongodb://localhost:27017/job_ingestion
 
 # Run the Spring Boot application, mapping server port and mongo uri dynamically
-ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT} --spring.mongodb.uri=${MONGODB_URI}"]
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT} --spring.data.mongodb.uri=${MONGODB_URI}"]
